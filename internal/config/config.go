@@ -10,14 +10,16 @@ import (
 
 // Config holds all application configuration loaded from environment variables.
 type Config struct {
-	ServerPort    string
-	DBHost        string
-	DBPort        string
-	DBUser        string
-	DBPassword    string
-	DBName        string
-	JWTSecret     string
-	JWTExpiration time.Duration
+	ServerPort           string
+	DBHost               string
+	DBPort               string
+	DBUser               string
+	DBPassword           string
+	DBName               string
+	JWTSecret            string
+	JWTExpiration        time.Duration
+	JWTRefreshSecret     string
+	JWTRefreshExpiration time.Duration
 }
 
 // Load reads configuration from .env file and environment variables.
@@ -28,19 +30,24 @@ func Load() (*Config, error) {
 	_ = godotenv.Load(".env.local")
 
 	cfg := &Config{
-		ServerPort:    getEnv("PORT", "8080"),
-		DBHost:        getEnv("DB_HOST", "localhost"),
-		DBPort:        getEnv("DB_PORT", "5432"),
-		DBUser:        getEnv("DB_USER", "postgres"),
-		DBPassword:    getEnv("DB_PASSWORD", "postgres"),
-		DBName:        getEnv("DB_NAME", "battery_pos"),
-		JWTSecret:     getEnv("JWT_SECRET", ""),
-		JWTExpiration: parseDuration(getEnv("JWT_EXPIRATION", "24h")),
+		ServerPort:           getEnv("PORT", "8080"),
+		DBHost:               getEnv("DB_HOST", "localhost"),
+		DBPort:               getEnv("DB_PORT", "5432"),
+		DBUser:               getEnv("DB_USER", "postgres"),
+		DBPassword:           getEnv("DB_PASSWORD", "postgres"),
+		DBName:               getEnv("DB_NAME", "battery_pos"),
+		JWTSecret:            getEnv("JWT_SECRET", ""),
+		JWTExpiration:        parseDuration(getEnv("JWT_EXPIRATION", "15m")),
+		JWTRefreshSecret:     getEnv("JWT_REFRESH_SECRET", ""),
+		JWTRefreshExpiration: parseDuration(getEnv("JWT_REFRESH_EXPIRATION", "168h")),
 	}
 
 	// Validate required fields
 	if cfg.JWTSecret == "" {
 		return nil, fmt.Errorf("JWT_SECRET is required")
+	}
+	if cfg.JWTRefreshSecret == "" {
+		return nil, fmt.Errorf("JWT_REFRESH_SECRET is required")
 	}
 
 	return cfg, nil
