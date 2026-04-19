@@ -8,6 +8,10 @@ import { POSPage } from './pages/POSPage';
 import { UsersPage } from './pages/UsersPage';
 import { BranchesPage } from './pages/BranchesPage';
 import { SuppliersPage } from './pages/SuppliersPage';
+import { ProductsPage } from './pages/ProductsPage';
+import { StockPage } from './pages/StockPage';
+import { PurchaseBatchesPage } from './pages/PurchaseBatchesPage';
+import { TransfersPage } from './pages/TransfersPage';
 
 // Public only route (redirects to dashboard if already authenticated)
 function PublicRoute() {
@@ -52,6 +56,22 @@ export const router = createBrowserRouter([
           {
             path: 'suppliers',
             element: <SuppliersPage />,
+          },
+          {
+            path: 'products',
+            element: <ProductsPage />,
+          },
+          {
+            path: 'stock',
+            element: <StockPage />,
+          },
+          {
+            path: 'purchase-batches',
+            element: <PurchaseBatchesPage />,
+          },
+          {
+            path: 'transfers',
+            element: <TransfersPage />,
           },
         ],
       },

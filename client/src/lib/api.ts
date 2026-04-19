@@ -3,6 +3,10 @@ import type {
   User,
   Branch,
   Supplier,
+  Product,
+  Stock,
+  PurchaseBatch,
+  Transfer,
   LoginCredentials,
   LoginResponse,
   RefreshResponse,
@@ -178,4 +182,46 @@ export const suppliersApi = {
   getById: (id: string) => api.get<Supplier>(`/api/suppliers/${id}`),
   create: (data: CreateSupplierRequest) => api.post<Supplier>('/api/suppliers', data),
   update: (id: string, data: UpdateSupplierRequest) => api.put<Supplier>(`/api/suppliers/${id}`, data),
+};
+
+// Products API
+export const productsApi = {
+  list: (params?: Record<string, string>) =>
+    api.get<Product[]>('/api/products' + (params ? '?' + new URLSearchParams(params) : '')),
+  getById: (id: string) => api.get<Product>(`/api/products/${id}`),
+  create: (data: Omit<Product, 'id' | 'created_at'>) => api.post<Product>('/api/products', data),
+  update: (id: string, data: Partial<Product>) => api.put<Product>(`/api/products/${id}`, data),
+};
+
+// Stock API
+export const stockApi = {
+  list: (params?: Record<string, string>) =>
+    api.get<Stock[]>('/api/stock' + (params ? '?' + new URLSearchParams(params) : '')),
+  getLowAlerts: () => api.get<Stock[]>('/api/stock/low'),
+  adjust: (data: { product_id: string; product_type: string; location_type: string; location_id: string; quantity: number; reason: string }) =>
+    api.post('/api/stock/adjust', data),
+};
+
+// Purchase Batches API
+export const purchaseBatchesApi = {
+  list: () => api.get<PurchaseBatch[]>('/api/purchase-batches'),
+  getById: (id: string) => api.get<PurchaseBatch>(`/api/purchase-batches/${id}`),
+  create: (data: { supplier_id: string; purchase_date: string; notes?: string; details: { product_id: string; product_type: string; quantity: number; unit_cost: number }[] }) =>
+    api.post<PurchaseBatch>('/api/purchase-batches', data),
+  process: (id: string) => api.post<void>(`/api/purchase-batches/${id}/process`),
+};
+
+// Transfers API
+export const transfersApi = {
+  list: (params?: Record<string, string>) =>
+    api.get<Transfer[]>('/api/transfers' + (params ? '?' + new URLSearchParams(params) : '')),
+  getById: (id: string) => api.get<Transfer>(`/api/transfers/${id}`),
+  create: (data: { origin_type: string; origin_id: string; destination_type: string; destination_id: string; transfer_type: string; details: { product_id?: string; product_type?: string; quantity: number; liters?: number }[] }) =>
+    api.post<Transfer>('/api/transfers', data),
+  approve: (id: string) => api.post<void>(`/api/transfers/${id}/approve`),
+  reject: (id: string, reason: string) => api.post<void>(`/api/transfers/${id}/reject`, { reason }),
+  ship: (id: string) => api.post<void>(`/api/transfers/${id}/ship`),
+  receive: (id: string) => api.post<void>(`/api/transfers/${id}/receive`),
+  push: (data: { destination_type: string; destination_id: string; details: { product_id?: string; product_type?: string; quantity: number; liters?: number }[] }) =>
+    api.post<Transfer>('/api/transfers/push', data),
 };

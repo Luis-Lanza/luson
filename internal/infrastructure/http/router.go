@@ -11,29 +11,43 @@ import (
 
 // RouterConfig holds all dependencies needed to configure the router.
 type RouterConfig struct {
-	Config          *config.Config
-	DB              interface{}
-	AuthService     ports.AuthService
-	UserService     ports.UserService
-	BranchService   ports.BranchService
-	SupplierService ports.SupplierService
+	Config               *config.Config
+	DB                   interface{}
+	AuthService          ports.AuthService
+	UserService          ports.UserService
+	BranchService        ports.BranchService
+	SupplierService      ports.SupplierService
+	ProductService       ports.ProductService
+	StockService         ports.StockService
+	PurchaseBatchService ports.PurchaseBatchService
+	TransferService      ports.TransferService
 }
 
 // NewRouter creates and configures the Gin router with all routes and middleware.
 func NewRouter(cfg *config.Config, db interface{}) *gin.Engine {
 	// This is a simplified version - in production, you'd wire all dependencies
-	return setupRouter(cfg, db, nil, nil, nil, nil)
+	return setupRouter(RouterConfig{
+		Config: cfg,
+		DB:     db,
+	})
 }
 
 // NewRouterWithServices creates a router with all services wired up.
 func NewRouterWithServices(config RouterConfig) *gin.Engine {
-	return setupRouter(config.Config, config.DB, config.AuthService, config.UserService,
-		config.BranchService, config.SupplierService)
+	return setupRouter(config)
 }
 
-func setupRouter(cfg *config.Config, db interface{}, authService ports.AuthService,
-	userService ports.UserService, branchService ports.BranchService,
-	supplierService ports.SupplierService) *gin.Engine {
+func setupRouter(config RouterConfig) *gin.Engine {
+	cfg := config.Config
+	db := config.DB
+	authService := config.AuthService
+	userService := config.UserService
+	branchService := config.BranchService
+	supplierService := config.SupplierService
+	productService := config.ProductService
+	stockService := config.StockService
+	purchaseBatchService := config.PurchaseBatchService
+	transferService := config.TransferService
 
 	router := gin.New()
 
@@ -73,6 +87,26 @@ func setupRouter(cfg *config.Config, db interface{}, authService ports.AuthServi
 		supplierHandler = handlers.NewSupplierHandler(supplierService)
 	}
 
+	var productHandler *handlers.ProductHandler
+	if productService != nil {
+		productHandler = handlers.NewProductHandler(productService)
+	}
+
+	var stockHandler *handlers.StockHandler
+	if stockService != nil {
+		stockHandler = handlers.NewStockHandler(stockService)
+	}
+
+	var purchaseBatchHandler *handlers.PurchaseBatchHandler
+	if purchaseBatchService != nil {
+		purchaseBatchHandler = handlers.NewPurchaseBatchHandler(purchaseBatchService)
+	}
+
+	var transferHandler *handlers.TransferHandler
+	if transferService != nil {
+		transferHandler = handlers.NewTransferHandler(transferService)
+	}
+
 	// Public routes (no authentication required)
 	if authHandler != nil {
 		router.POST("/api/auth/login", authHandler.Login)
@@ -98,6 +132,47 @@ func setupRouter(cfg *config.Config, db interface{}, authService ports.AuthServi
 				suppliers.POST("", supplierHandler.Create)
 				suppliers.PUT("/:id", supplierHandler.Update)
 				suppliers.DELETE("/:id", supplierHandler.Deactivate)
+			}
+
+			// Product routes (accessible to all authenticated users)
+			if productHandler != nil {
+				products := authorized.Group("/products")
+				products.GET("", productHandler.List)
+				products.GET("/:id", productHandler.GetByID)
+				products.POST("", productHandler.Create)
+				products.PUT("/:id", productHandler.Update)
+				products.DELETE("/:id", productHandler.Deactivate)
+			}
+
+			// Stock routes (accessible to all authenticated users)
+			if stockHandler != nil {
+				stock := authorized.Group("/stock")
+				stock.GET("", stockHandler.GetByProductAndLocation)
+				stock.GET("/product/:productId", stockHandler.ListByProduct)
+				stock.GET("/location/:locationType/:locationId", stockHandler.ListByLocation)
+				stock.PUT("/:id/min-alert", stockHandler.SetMinStockAlert)
+			}
+
+			// Purchase batch routes (accessible to all authenticated users)
+			if purchaseBatchHandler != nil {
+				batches := authorized.Group("/purchase-batches")
+				batches.GET("", purchaseBatchHandler.List)
+				batches.GET("/:id", purchaseBatchHandler.GetByID)
+				batches.POST("", purchaseBatchHandler.Create)
+				batches.POST("/:id/receive", purchaseBatchHandler.Receive)
+			}
+
+			// Transfer routes (accessible to all authenticated users)
+			if transferHandler != nil {
+				transfers := authorized.Group("/transfers")
+				transfers.GET("", transferHandler.List)
+				transfers.GET("/:id", transferHandler.GetByID)
+				transfers.POST("", transferHandler.Create)
+				transfers.POST("/:id/approve", transferHandler.Approve)
+				transfers.POST("/:id/reject", transferHandler.Reject)
+				transfers.POST("/:id/send", transferHandler.MarkAsSent)
+				transfers.POST("/:id/receive", transferHandler.MarkAsReceived)
+				transfers.DELETE("/:id", transferHandler.Cancel)
 			}
 		}
 
